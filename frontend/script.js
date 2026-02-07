@@ -40,43 +40,7 @@ scanBtn.addEventListener('click', () => {
 });
 
 
-// File Upload Logic
-const uploadBtn = document.getElementById('upload-btn');
-const fileInput = document.getElementById('qr-input-file');
-
-if (uploadBtn) {
-    uploadBtn.addEventListener('click', () => {
-        fileInput.click();
-    });
-}
-
-if (fileInput) {
-    fileInput.addEventListener('change', e => {
-        if (e.target.files.length == 0) return;
-
-        const imageFile = e.target.files[0];
-
-        // Show loading immediately
-        startScreen.classList.add('hidden');
-        loadingScreen.classList.remove('hidden');
-
-        if (!html5QrCode) initScanner();
-
-        html5QrCode.scanFile(imageFile, true)
-            .then(decodedText => {
-                // Success
-                loadingScreen.classList.add('hidden');
-                onScanSuccess(decodedText);
-            })
-            .catch(err => {
-                // Failure
-                console.error("Error scanning file", err);
-                alert("Could not scan QR code from this image. Please try another.");
-                loadingScreen.classList.add('hidden');
-                startScreen.classList.remove('hidden');
-            });
-    });
-}
+// File Upload Logic Removed
 
 // Stop Scanning & Reset
 function stopScanning() {
