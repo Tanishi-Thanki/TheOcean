@@ -76,7 +76,7 @@ async function analyzeUrl(url) {
     openLinkBtn.href = url;
 
     try {
-        const response = await fetch('http://localhost:3000/analyze', {
+        const response = await fetch('https://theocean-safe-qr-scan-backend.onrender.com/analyze', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
