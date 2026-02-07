@@ -100,78 +100,87 @@ function onScanSuccess(decodedText) {
         scannerContainer.classList.add('hidden');
         loadingScreen.classList.remove('hidden');
 
-        // Mock Backend Delay
-        setTimeout(() => {
-            analyzeUrl(decodedText);
-        }, 1500);
+        // Call Backend
+        analyzeUrl(decodedText);
     });
 }
 
-// Mock Backend Analysis
-function analyzeUrl(url) {
+// Backend Analysis
+async function analyzeUrl(url) {
     currentUrl = url;
-    loadingScreen.classList.add('hidden');
-    resultCard.classList.remove('hidden');
     decodedUrlEl.textContent = url;
     openLinkBtn.href = url;
 
-    // Simple mock logic for demo purposes
-    let result = {
-        riskLevel: "Safe",
-        color: "green",
-        bg: "bg-green-100",
-        text: "text-green-800",
-        vector: "No Threats Detected",
-        explanation: "This URL appears to be a legitimate website with no known security issues."
-    };
+    try {
+        const response = await fetch('http://localhost:3000/analyze', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ url: url })
+        });
 
-    if (url.includes("bit.ly") || url.includes("tinyurl")) {
-        result = {
-            riskLevel: "Suspicious",
-            color: "yellow",
-            bg: "bg-yellow-100",
-            text: "text-yellow-800",
-            vector: "URL Shortener",
-            explanation: "Shortened URLs can hide malicious destinations. Proceed with caution."
-        };
-    } else if (url.includes("login") || url.includes("secure") || url.includes("update")) {
-        result = {
-            riskLevel: "High Risk",
-            color: "red",
-            bg: "bg-red-100",
-            text: "text-red-800",
-            vector: "Potential Phishing",
-            explanation: "This URL contains keywords often used in phishing attacks to steal credentials."
-        };
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Hide loading, show result
+        loadingScreen.classList.add('hidden');
+        resultCard.classList.remove('hidden');
+
+        renderResult(data);
+
+    } catch (error) {
+        console.error("Analysis failed:", error);
+        alert("Failed to analyze URL. Ensure backend is running on port 3000.");
+        loadingScreen.classList.add('hidden');
+        startScreen.classList.remove('hidden');
     }
-
-    renderResult(result);
 }
 
 function renderResult(data) {
-    // Icon selection
+    // Determine styles based on Risk Level
+    let color = 'green';
+    let bg = 'bg-green-100';
+    let text = 'text-green-800';
     let icon = '';
-    if (data.color === 'green') {
-        icon = `<svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
-    } else if (data.color === 'yellow') {
+
+    const riskLevel = data.riskLevel || "Unknown";
+    const score = data.riskScore || 0;
+
+    if (riskLevel === 'High') {
+        color = 'red';
+        bg = 'bg-red-100';
+        text = 'text-red-800';
+        icon = `<svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+    } else if (riskLevel === 'Medium') {
+        color = 'yellow';
+        bg = 'bg-yellow-100';
+        text = 'text-yellow-800';
         icon = `<svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
     } else {
-        icon = `<svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+        // Safe / Low
+        color = 'green';
+        bg = 'bg-green-100';
+        text = 'text-green-800';
+        icon = `<svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
     }
 
     resultHeader.innerHTML = `
-        <div class="p-2 rounded-full ${data.bg}">
+        <div class="p-2 rounded-full ${bg}">
             ${icon}
         </div>
         <div>
-            <h2 class="text-xl font-bold ${data.text}">${data.riskLevel}</h2>
-            <p class="text-xs text-gray-500">Security Score: ${data.color === 'green' ? '95/100' : (data.color === 'yellow' ? '60/100' : '15/100')}</p>
+            <h2 class="text-xl font-bold ${text}">${riskLevel} Risk</h2>
+            <p class="text-xs text-gray-500">Security Score: ${score}/100</p>
         </div>
     `;
 
-    attackVectorEl.textContent = data.vector;
-    attackVectorEl.className = `text-sm font-bold ${data.text} mb-1`;
-    explanationEl.textContent = data.explanation;
+    attackVectorEl.textContent = data.attackVector || "None Detected";
+    attackVectorEl.className = `text-sm font-bold ${text} mb-1`;
+    explanationEl.textContent = data.explanation || "No details provided.";
 }
 
 // Reset Flow
