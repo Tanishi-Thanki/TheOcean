@@ -1,0 +1,27 @@
+// List of high-value targets often impersonated
+module.exports = [
+  'google.com',
+  'paypal.com',
+  'amazon.com',
+  'amazon.in',
+  'facebook.com',
+  'twitter.com',
+  'instagram.com',
+  'linkedin.com',
+  'netflix.com',
+  'apple.com',
+  'microsoft.com',
+  'yahoo.com',
+  'dropbox.com',
+  'ebay.com',
+  'walmart.com',
+  'target.com',
+  'bestbuy.com',
+  'bankofamerica.com',
+  'chase.com',
+  'wellsfargo.com',
+  'citi.com',
+  'americanexpress.com',
+  'coinbase.com',
+  'binance.com'
+];
