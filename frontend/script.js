@@ -174,7 +174,7 @@ function renderResult(data) {
         </div>
         <div>
             <h2 class="text-xl font-bold ${text}">${riskLevel} Risk</h2>
-            <p class="text-xs text-gray-500">Security Score: ${score}/100</p>
+            <p class="text-xs text-gray-500">Risk Score: ${score}/100 (Lower is safer)</p>
         </div>
     `;
 
