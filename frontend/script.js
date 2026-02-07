@@ -1,0 +1,183 @@
+const startScreen = document.getElementById('start-screen');
+const scannerContainer = document.getElementById('scanner-container');
+const loadingScreen = document.getElementById('loading-screen');
+const resultCard = document.getElementById('result-card');
+const scanBtn = document.getElementById('scan-btn');
+const closeScannerBtn = document.getElementById('close-scanner');
+const closeResultBtn = document.getElementById('btn-close');
+const openLinkBtn = document.getElementById('btn-open');
+
+// Result Elements
+const resultHeader = document.getElementById('result-header');
+const decodedUrlEl = document.getElementById('decoded-url');
+const attackVectorEl = document.getElementById('attack-vector');
+const explanationEl = document.getElementById('explanation');
+
+let html5QrCode;
+let currentUrl = "";
+
+// Initialize Scanner
+function initScanner() {
+    html5QrCode = new Html5Qrcode("reader");
+}
+
+// Start Scanning
+scanBtn.addEventListener('click', () => {
+    startScreen.classList.add('hidden');
+    scannerContainer.classList.remove('hidden');
+    resultCard.classList.add('hidden');
+
+    if (!html5QrCode) initScanner();
+
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+    html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+        .catch(err => {
+            console.error("Error starting scanner", err);
+            alert("Camera permission denied or error starting camera.");
+            stopScanning();
+        });
+});
+
+
+// File Upload Logic
+const uploadBtn = document.getElementById('upload-btn');
+const fileInput = document.getElementById('qr-input-file');
+
+if (uploadBtn) {
+    uploadBtn.addEventListener('click', () => {
+        fileInput.click();
+    });
+}
+
+if (fileInput) {
+    fileInput.addEventListener('change', e => {
+        if (e.target.files.length == 0) return;
+
+        const imageFile = e.target.files[0];
+
+        // Show loading immediately
+        startScreen.classList.add('hidden');
+        loadingScreen.classList.remove('hidden');
+
+        if (!html5QrCode) initScanner();
+
+        html5QrCode.scanFile(imageFile, true)
+            .then(decodedText => {
+                // Success
+                loadingScreen.classList.add('hidden');
+                onScanSuccess(decodedText);
+            })
+            .catch(err => {
+                // Failure
+                console.error("Error scanning file", err);
+                alert("Could not scan QR code from this image. Please try another.");
+                loadingScreen.classList.add('hidden');
+                startScreen.classList.remove('hidden');
+            });
+    });
+}
+
+// Stop Scanning & Reset
+function stopScanning() {
+    if (html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => {
+            scannerContainer.classList.add('hidden');
+            startScreen.classList.remove('hidden');
+        }).catch(err => console.error("Failed to stop scanner", err));
+    } else {
+        scannerContainer.classList.add('hidden');
+        startScreen.classList.remove('hidden');
+    }
+}
+
+closeScannerBtn.addEventListener('click', stopScanning);
+
+// Handle Scan Success
+function onScanSuccess(decodedText) {
+    // Stop scanning immediately
+    html5QrCode.stop().then(() => {
+        scannerContainer.classList.add('hidden');
+        loadingScreen.classList.remove('hidden');
+
+        // Mock Backend Delay
+        setTimeout(() => {
+            analyzeUrl(decodedText);
+        }, 1500);
+    });
+}
+
+// Mock Backend Analysis
+function analyzeUrl(url) {
+    currentUrl = url;
+    loadingScreen.classList.add('hidden');
+    resultCard.classList.remove('hidden');
+    decodedUrlEl.textContent = url;
+    openLinkBtn.href = url;
+
+    // Simple mock logic for demo purposes
+    let result = {
+        riskLevel: "Safe",
+        color: "green",
+        bg: "bg-green-100",
+        text: "text-green-800",
+        vector: "No Threats Detected",
+        explanation: "This URL appears to be a legitimate website with no known security issues."
+    };
+
+    if (url.includes("bit.ly") || url.includes("tinyurl")) {
+        result = {
+            riskLevel: "Suspicious",
+            color: "yellow",
+            bg: "bg-yellow-100",
+            text: "text-yellow-800",
+            vector: "URL Shortener",
+            explanation: "Shortened URLs can hide malicious destinations. Proceed with caution."
+        };
+    } else if (url.includes("login") || url.includes("secure") || url.includes("update")) {
+        result = {
+            riskLevel: "High Risk",
+            color: "red",
+            bg: "bg-red-100",
+            text: "text-red-800",
+            vector: "Potential Phishing",
+            explanation: "This URL contains keywords often used in phishing attacks to steal credentials."
+        };
+    }
+
+    renderResult(result);
+}
+
+function renderResult(data) {
+    // Icon selection
+    let icon = '';
+    if (data.color === 'green') {
+        icon = `<svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+    } else if (data.color === 'yellow') {
+        icon = `<svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+    } else {
+        icon = `<svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+    }
+
+    resultHeader.innerHTML = `
+        <div class="p-2 rounded-full ${data.bg}">
+            ${icon}
+        </div>
+        <div>
+            <h2 class="text-xl font-bold ${data.text}">${data.riskLevel}</h2>
+            <p class="text-xs text-gray-500">Security Score: ${data.color === 'green' ? '95/100' : (data.color === 'yellow' ? '60/100' : '15/100')}</p>
+        </div>
+    `;
+
+    attackVectorEl.textContent = data.vector;
+    attackVectorEl.className = `text-sm font-bold ${data.text} mb-1`;
+    explanationEl.textContent = data.explanation;
+}
+
+// Reset Flow
+closeResultBtn.addEventListener('click', () => {
+    resultCard.classList.add('hidden');
+    startScreen.classList.remove('hidden');
+    currentUrl = "";
+});
+
